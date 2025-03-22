@@ -1,0 +1,28 @@
+---
+- name: Ensure deploy directory exists
+  file:
+    path: "{{ item.path }}"
+    state: directory
+  loop:
+    - { path: "{{ service_directory }}" }
+    - { path: "{{ service_directory }}/conf" }
+
+- name: Copy Templates
+  template:
+    src: "{{ item.src }}"
+    dest: "{{ item.dest }}"
+    mode: "{{ item.mode }}"
+  loop:
+    - { src: "docker-compose.yml", dest: "{{ service_directory }}/docker-compose.yml", mode: "0644" }
+    - { src: "app.ini", dest: "{{ service_directory}}/conf/app.ini", mode: "0644" }
+
+- name: Copy docker-compose.yml from template
+  template:
+    src: docker-compose.yml
+    dest: "{{ service_directory }}/docker-compose.yml"
+    mode: '0644'
+
+- name: Deploy using Docker Compose
+  community.docker.docker_compose_v2:
+    project_src: "{{ service_directory }}"
+    state: present

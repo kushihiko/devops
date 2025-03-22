@@ -1,0 +1,38 @@
+global:
+  checkNewVersion: false
+  sendAnonymousUsage: false
+
+log:
+  level: DEBUG
+  # format: common
+  # filePath: /var/log/traefik/traefik.log
+
+# accesslog:
+#   format: common
+#   filePath: /var/log/traefik/access.log
+
+api:
+  dashboard: true
+  insecure: true
+
+entryPoints:
+  web_insecure:
+    address: ":{{ http_port }}"
+  web_secure:
+    address: ":{{ https_port }}"
+
+providers:
+  docker:
+    endpoint: "unix:///var/run/docker.sock"
+    exposedByDefault: false
+
+certificatesResolvers:
+  cloudflare:
+    acme:
+      email: "{{ vault_cloudflare_owner_mail }}"
+      storage: /etc/traefik/certs/acme.json
+      dnsChallenge:
+        provider: cloudflare
+        resolvers:
+          - "1.1.1.1:53"
+          - "1.0.0.1:53"

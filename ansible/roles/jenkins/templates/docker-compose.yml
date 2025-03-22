@@ -1,0 +1,55 @@
+networks:
+  "{{ docker_proxy_network_name }}":
+    external: true
+    name: "{{ docker_proxy_network_name }}"
+  jenkins-network:
+    internal: true
+    name: "jenkins-network"
+
+volumes:
+  controller-data:
+  agent-data:
+
+services:
+  jenkins:
+    image: "{{ service_image }}"
+    volumes:
+      - "jenkins-data:/var/jenkins_home"
+    networks:
+      "{{ docker_proxy_network_name }}":
+        ipv4_address: "{{ jenkins_dns_ip }}"
+      jenkins-network:
+    dns: "{{ dns_ip }}"
+
+    labels:
+      # core
+      - traefik.enable=true
+      - traefik.http.services.{{ jenkins_name }}.loadbalancer.server.port={{ controller_public_port }}
+      # http
+      - traefik.http.routers.{{ jenkins_name }}.entrypoints=web_insecure
+      - traefik.http.routers.{{ jenkins_name }}.rule=Host(`{{ http_route }}`)
+
+      # # http -> https bridge
+      # - traefik.http.routers.{{ jenkins_name }}.middlewares=https_redirect
+      # - traefik.http.middlewares.https_redirect.redirectscheme.scheme=https
+      # # https
+      # - traefik.http.routers.{{ jenkins_name }}-secure.entrypoints=web_secure
+      # - traefik.http.routers.{{ jenkins_name }}-secure.rule=Host(`{{ https_route }}`)
+      # - traefik.http.routers.{{ jenkins_name }}-secure.tls=true
+      # - traefik.http.routers.{{ jenkins_name }}-secure.tls.certresolver=cloudflare
+
+  jenkins-agent:
+    image: "{{ service_agent_image }}"
+    privileged: true
+    depends_on:
+      - jenkins
+    volumes:
+      - "jenkins-agent-data:/home/jenkins/agent"
+      - type: bind
+        source: {{ service_keys_directory }}
+        target: {{ agent_target_ssh_dir }}
+        read_only: true
+    networks:
+      jenkins-network:
+    environment:
+      - SSH_PUBLIC_KEY_DIR={{ agent_target_ssh_dir }}

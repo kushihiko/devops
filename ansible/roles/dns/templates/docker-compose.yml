@@ -1,0 +1,22 @@
+networks:
+  "{{ docker_dns_network_name }}":
+    driver: bridge
+    internal: false
+    ipam:
+      driver: default
+      config:
+        - subnet: "{{ dns_subnet }}"
+    name: "{{ docker_dns_network_name }}"
+
+services:
+  coredns:
+    image: "{{ service_image }}"
+    container_name: "{{ coredns_name }}"
+    networks:
+      "{{ docker_dns_network_name }}":
+        ipv4_address: "{{ dns_ip }}"
+    ports:
+      - "{{ dns_port }}:{{ dns_port }}/udp"
+    command: -conf /etc/coredns/Corefile
+    volumes:
+      - "./Corefile:/etc/coredns/Corefile"

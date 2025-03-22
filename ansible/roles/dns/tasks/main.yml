@@ -1,0 +1,18 @@
+---
+- name: Ensure directory exists
+  file:
+    path: "{{ service_directory }}"
+    state: directory
+
+- name: Copy templates
+  template:
+    src: "{{ item.src }}"
+    dest: "{{ item.dest }}"
+  loop:
+    - { src: docker-compose.yml, dest: '{{ service_directory }}/docker-compose.yml' }
+    - { src: Corefile, dest: '{{ service_directory }}/Corefile' }
+
+- name: Deploy DNS using Docker Compose
+  community.docker.docker_compose_v2:
+    project_src: "{{ service_directory }}"
+    state: present

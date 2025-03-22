@@ -1,0 +1,5 @@
+---
+service_name: dns
+service_image: "coredns/coredns:1.12.0"
+
+service_directory: "{{ deploy_directory }}/{{ service_name }}/{{ coredns_name }}"

@@ -1,0 +1,7 @@
+---
+service_implementation: "jenkins"
+service_image: "jenkins/jenkins:lts-jdk21"
+
+service_agent_image: "{{ registry_global_domain }}/jenkins-agent"
+
+service_directory: "{{ deploy_directory }}/{{ service_name }}/{{ service_implementation }}"

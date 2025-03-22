@@ -1,0 +1,21 @@
+---
+- name: Stat file
+  stat:
+    path: "{{ docker_script }}"
+  register: script_info
+
+- name: Download Docker install script
+  get_url:
+    url: https://get.docker.com
+    dest: "{{ docker_script }}"
+    mode: '0755'
+  when: not script_info.stat.exists
+
+- name: Check Docker version
+  command: docker --version
+  register: docker_check
+  failed_when: false
+
+- name: Run Docker install script
+  shell: "{{ docker_script }}"
+  when: docker_check.rc != 0

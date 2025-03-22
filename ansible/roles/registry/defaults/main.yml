@@ -1,0 +1,5 @@
+---
+service_image: "registry:2"
+service_port: 5000
+
+service_directory: "{{ deploy_directory }}/{{ registry_name }}/{{ registry_name }}"
