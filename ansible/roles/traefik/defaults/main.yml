@@ -1,0 +1,7 @@
+---
+service_name: "proxy"
+service_image: "traefik:v2.10.4"
+service_http_port: "{{ http_port }}"
+service_https_port: "{{ https_port }}"
+
+service_directory: "{{ deploy_directory }}/{{ service_name }}/{{ traefik_name }}"

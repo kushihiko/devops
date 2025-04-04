@@ -1,0 +1,54 @@
+networks:
+  "{{ docker_proxy_network_name }}":
+    driver: bridge
+    internal: false
+    name: "{{ docker_proxy_network_name }}"
+  "{{ docker_dns_network_name }}":
+    external: true
+    name: "{{ docker_dns_network_name }}"
+
+services:
+  traefik:
+    image: "{{ service_image }}"
+    container_name: "{{ traefik_name }}"
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    env_file:
+      - traefik.env
+    ports:
+      - "{{ service_https_port }}:443"
+      - "{{ service_http_port }}:80"
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./logs/:/var/log/traefik/
+      - ./traefik.yml:/etc/traefik/traefik.yml:ro
+      - ./config/:/etc/traefik/config/:ro
+      - ./certs/:/etc/traefik/certs/
+      - ./secret:/etc/traefik/secret:ro
+    environment:
+      CF_DNS_API_TOKEN: "{{ vault_cloudflare_dns_api_token }}"
+    labels:
+      - traefik.enable=true
+      - traefik.http.services.{{ traefik_name }}.loadbalancer.server.port=8080
+
+      - traefik.http.routers.traefik-dashboard.rule=Host(`{{ traefik_global_domain }}`)
+      - traefik.http.routers.traefik-dashboard.entrypoints=web_insecure
+      - traefik.http.routers.traefik-dashboard.service=api@internal
+
+      - traefik.http.routers.traefik-dashboard.middlewares=https_redirect
+      - traefik.http.middlewares.https_redirect.redirectscheme.scheme=https
+
+      - traefik.http.routers.traefik-dashboard-secure.entrypoints=web_secure
+      - traefik.http.routers.traefik-dashboard-secure.rule=Host(`{{ traefik_global_domain }}`)
+      - traefik.http.routers.traefik-dashboard-secure.tls=true
+      - traefik.http.routers.traefik-dashboard-secure.tls.certresolver=cloudflare
+      - traefik.http.routers.{{ traefik_name }}.tls.domains[0].main=kushihiko.tech
+      - traefik.http.routers.{{ traefik_name }}.tls.domains[0].sans=traefik.kushihiko.tech
+
+    networks:
+      "{{ docker_proxy_network_name }}":
+      "{{ docker_dns_network_name }}":
+        ipv4_address: "{{ traefik_dns_ip }}"
+    dns: "{{ dns_ip }}"

@@ -1,0 +1,12 @@
+---
+service_name: git
+service_image: "gogs/gogs:0.13"
+service_port: 3000
+service_ssh_port: 22
+
+# database
+database_name: "postgres"
+database_image: "postgres:17"
+database_user: "postgres"
+
+service_directory: "{{ deploy_directory }}/{{ service_name }}/{{ gogs_name }}"

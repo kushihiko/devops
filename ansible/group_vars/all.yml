@@ -1,0 +1,41 @@
+deploy_directory: "/home/{{ ansible_user }}"
+
+# domains
+local_domain: "localhost"
+global_domain: "kushihiko.tech"
+
+# dns
+coredns_name: "coredns"
+docker_dns_network_name: "dns-network"
+dns_subnet: "10.10.10.0/24"
+dns_ip: "10.10.10.10"
+
+# proxy
+traefik_name: "traefik"
+docker_proxy_network_name: "proxy-network"
+traefik_dns_ip: "10.10.10.3"
+traefik_global_domain: "{{ traefik_name }}.{{ global_domain }}"
+traefik_local_domain: "{{ traefik_name }}.{{ local_domain }}"
+
+# git
+gogs_name: "gogs"
+gogs_dns_ip: "10.10.10.20"
+gogs_global_domain: "{{ gogs_name }}.{{ global_domain }}"
+gogs_local_domain: "{{ gogs_name }}.{{ local_domain }}"
+
+# registry
+registry_name: "registry"
+registry_dns_ip: "10.10.10.21"
+registry_global_domain: "{{ registry_name }}.{{ global_domain }}"
+registry_local_domain: "{{ registry_name }}.{{ local_domain }}"
+
+# jenkins
+jenkins_name: "jenkins"
+jenkins_dns_ip: "10.10.10.22"
+jenkins_agent_dns_ip: "10.10.10.41"
+jenkins_global_domain: "{{ jenkins_name }}.{{ global_domain }}"
+jenkins_local_domain: "{{ jenkins_name }}.{{ local_domain }}"
+
+dns_port: 53
+http_port: 80
+https_port: 443

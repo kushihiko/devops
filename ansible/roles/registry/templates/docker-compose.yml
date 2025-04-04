@@ -1,0 +1,35 @@
+networks:
+  "{{ docker_proxy_network_name }}":
+    external: true
+    name: "{{ docker_proxy_network_name }}"
+  "{{ docker_dns_network_name }}":
+    external: true
+    name: "{{ docker_dns_network_name }}"
+
+services:
+  registry:
+    image: "{{ service_image }}"
+    container_name: "{{ registry_name }}"
+    expose:
+      - "{{ service_port }}"
+    restart: always
+
+    networks:
+      "{{ docker_proxy_network_name }}":
+      "{{ docker_dns_network_name }}":
+        ipv4_address: "{{ registry_dns_ip }}"
+    dns: "{{ dns_ip }}"
+    labels:
+      - traefik.enable=true
+      
+      - traefik.http.services.{{ registry_name }}.loadbalancer.server.port={{ service_port }}
+      - traefik.http.routers.{{ registry_name }}.entrypoints=web_insecure
+      - traefik.http.routers.{{ registry_name }}.rule=Host(`{{ registry_global_domain }}`)
+
+      - traefik.http.routers.{{ registry_name }}.middlewares=https_redirect
+      - traefik.http.middlewares.https_redirect.redirectscheme.scheme=https
+
+      - traefik.http.routers.{{ registry_name }}-secure.entrypoints=web_secure
+      - traefik.http.routers.{{ registry_name }}-secure.rule=Host(`{{ registry_global_domain }}`)
+      - traefik.http.routers.{{ registry_name }}-secure.tls=true
+      - traefik.http.routers.{{ registry_name }}-secure.tls.certresolver=cloudflare

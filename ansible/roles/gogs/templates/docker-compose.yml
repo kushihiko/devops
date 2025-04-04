@@ -1,0 +1,63 @@
+networks:
+  gogs-network:
+    internal: true
+  "{{ docker_proxy_network_name }}":
+    external: true
+    name: "{{ docker_proxy_network_name }}"
+  "{{ docker_dns_network_name }}":
+    external: true
+    name: "{{ docker_dns_network_name }}"
+
+volumes:
+  data:
+  database-data:
+
+services:
+  postgres:
+    image: "{{ database_image }}"
+    container_name: "postgres"
+    restart: always
+    environment:
+      - "POSTGRES_USER={{ database_user }}"
+      - "POSTGRES_PASSWORD={{ vault_gogs_database_password }}"
+      - "POSTGRES_DB=gogs"
+    volumes:
+      - "database-data:/var/lib/postgresql/data"
+    networks:
+      gogs-network:
+
+  gogs:
+    image: "{{ service_image }}"
+    container_name: "{{ gogs_name }}"
+    restart: always
+    expose:
+      - "{{ service_ssh_port }}"
+      - "{{ service_port }}"
+    ports:
+      - "{{ service_port }}:{{ service_port }}"
+    volumes:
+      - "data:/data"
+      - "./conf:/data/gogs/conf"
+    depends_on:
+      - postgres
+    networks:
+      gogs-network:
+      "{{ docker_proxy_network_name }}":
+      "{{ docker_dns_network_name }}":
+        ipv4_address: "{{ gogs_dns_ip }}"
+    dns: "{{ dns_ip }}"
+
+    labels:
+      - traefik.enable=true
+      - traefik.http.services.{{ gogs_name }}.loadbalancer.server.port={{ service_port }}
+
+      - traefik.http.routers.{{ gogs_name }}.entrypoints=web_insecure
+      - traefik.http.routers.{{ gogs_name }}.rule=Host(`{{ gogs_global_domain }}`)
+
+      - traefik.http.routers.{{ gogs_name }}.middlewares=https_redirect
+      - traefik.http.middlewares.https_redirect.redirectscheme.scheme=https
+
+      - traefik.http.routers.{{ gogs_name }}-secure.entrypoints=web_secure
+      - traefik.http.routers.{{ gogs_name }}-secure.rule=Host(`{{ gogs_global_domain }}`)
+      - traefik.http.routers.{{ gogs_name }}-secure.tls=true
+      - traefik.http.routers.{{ gogs_name }}-secure.tls.certresolver=cloudflare

@@ -1,0 +1,8 @@
+---
+service_image: "jenkins/jenkins:lts-jdk21"
+service_port: 8080
+
+service_agent_name: "jenkins-agent"
+service_agent_image: "{{ registry_global_domain }}/jenkins-agent"
+
+service_directory: "{{ deploy_directory }}/{{ jenkins_name }}"

@@ -1,0 +1,13 @@
+---
+- name: "Deploy"
+  hosts: master
+  become: true
+  vars_files:
+    - group_vars/vault.yml
+  roles:
+    - docker
+    - dns
+    - traefik
+    - gogs
+    - registry
+    - jenkins

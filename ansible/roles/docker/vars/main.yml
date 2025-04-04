@@ -1,0 +1,2 @@
+---
+docker_script: "/tmp/get-docker.sh"

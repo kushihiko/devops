@@ -1,0 +1,36 @@
+---
+- name: Ensure deploy directory exists
+  file:
+    path: "{{ item.path }}"
+    state: directory
+  loop:
+    - { path: "{{ service_directory }}" }
+
+- name: Copy Templates
+  template:
+    src: "{{ item.src }}"
+    dest: "{{ item.dest }}"
+    mode: "{{ item.mode }}"
+  loop:
+    - { src: "docker-compose.yml", dest: "{{ service_directory }}/docker-compose.yml", mode: "0644" }
+    - { src: "Dockerfile", dest: "{{ service_directory}}/Dockerfile", mode: "0644" }
+
+- name: Build Jenkins-agent image if not exist
+  community.docker.docker_image:
+    build:
+      path: "{{ service_directory }}"
+    name: "{{ service_agent_image }}"
+    tag: "latest"
+    push: true
+    source: build
+
+- name: Copy docker-compose.yml from template
+  template:
+    src: docker-compose.yml
+    dest: "{{ service_directory }}/docker-compose.yml"
+    mode: '0644'
+
+- name: Deploy using Docker Compose
+  community.docker.docker_compose_v2:
+    project_src: "{{ service_directory }}"
+    state: present

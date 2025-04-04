@@ -1,0 +1,5 @@
+.vagrant
+.idea
+.DS_Store
+
+/ansible/group_vars/vault.yml
