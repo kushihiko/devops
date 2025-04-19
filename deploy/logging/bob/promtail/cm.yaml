@@ -1,0 +1,77 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: promtail
+  labels:
+    app.kubernetes.io/name: promtail
+data:
+  config.yml: |-
+    server:
+      http_listen_port: 3101
+      grpc_listen_port: 0
+
+    positions:
+      filename: /tmp/positions.yaml
+
+    clients:
+      - url: http://loki:3100/loki/api/v1/push
+
+    target_config:
+      sync_period: 10s
+
+    scrape_configs:
+      - job_name: journal
+        journal:
+          path: /var/log/journal
+          max_age: 12h
+          labels:
+            job: systemd-journal
+        relabel_configs:
+          - source_labels: ['__journal__hostname']
+            target_label: host
+          - source_labels: ['__journal__systemd_unit']
+            target_label: systemd_unit
+            regex: '(.+)'
+          - source_labels: ['__journal__systemd_user_unit']
+            target_label: systemd_user_unit
+            regex: '(.+)'
+          - source_labels: ['__journal__transport']
+            target_label: transport
+            regex: '(.+)'
+          - source_labels: ['__journal_priority_keyword']
+            target_label: severity
+            regex: '(.+)'
+
+      - job_name: pod-logs
+        kubernetes_sd_configs:
+          - role: pod
+        pipeline_stages:
+          - cri: {}
+          - docker: {}
+        relabel_configs:
+          - action: replace
+            replacement: $1
+            separator: /
+            source_labels:
+              - __meta_kubernetes_namespace
+              - __meta_kubernetes_pod_name
+            target_label: job
+          - replacement: /var/log/pods/*$1/*.log
+            separator: /
+            source_labels:
+              - __meta_kubernetes_pod_uid
+              - __meta_kubernetes_pod_container_name
+            target_label: __path__
+          - action: replace
+            source_labels:
+              - __meta_kubernetes_namespace
+            target_label: namespace
+          - action: replace
+            source_labels:
+              - __meta_kubernetes_pod_name
+            target_label: pod
+          - action: replace
+            source_labels:
+              - __meta_kubernetes_pod_container_name
+            target_label: container

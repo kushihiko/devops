@@ -1,0 +1,32 @@
+env:
+  - name: INFLUXDB_TOKEN
+    valueFrom:
+      secretKeyRef:
+        name: influxdb2-auth
+        key: admin-token
+  - name: HOSTNAME
+    valueFrom:
+      fieldRef:
+        fieldPath: spec.nodeName
+  - name: HOSTIP
+    valueFrom:
+      fieldRef:
+        fieldPath: status.hostIP
+  - name: "HOST_PROC"
+    value: "/hostfs/proc"
+  - name: "HOST_SYS"
+    value: "/hostfs/sys"
+  - name: "HOST_MOUNT_PREFIX"
+    value: "/hostfs"
+
+config:
+  agent:
+    debug: true
+  outputs:
+    - influxdb_v2:
+        urls:
+          - "http://influxdb2"
+        organization: "Kushihiko"
+        bucket: "main"
+        token: "$INFLUXDB_TOKEN"
+  docker_endpoint: ""

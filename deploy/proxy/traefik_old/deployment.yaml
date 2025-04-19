@@ -1,0 +1,53 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: traefik-deployment
+  labels:
+    app: traefik
+
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: traefik
+  template:
+    metadata:
+      labels:
+        app: traefik
+    spec:
+      serviceAccountName: traefik-account
+      containers:
+        - name: traefik
+          image: traefik:v3.3
+          env:
+            - name: CF_DNS_API_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: traefik-secret
+                  key: CLOUDFLARE_DNS_API_TOKEN
+            - name: CLOUDFLARE_OWNER_MAIL
+              valueFrom:
+                secretKeyRef:
+                  name: traefik-secret
+                  key: CLOUDFLARE_OWNER_MAIL
+          volumeMounts:
+            - mountPath: /etc/traefik/traefik.yml
+              name: traefik-config
+              subPath: traefik.yml
+          args:
+            - --api.insecure
+            - --providers.kubernetesingress
+          ports:
+            - name: web
+              containerPort: 80
+            - name: secure
+              containerPort: 443
+            - name: dashboard
+              containerPort: 8080
+      volumes:
+        - name: traefik-config
+          configMap:
+            name: traefik-configmap
+            items:
+              - key: traefik.yml
+                path: traefik.yml

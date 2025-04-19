@@ -1,0 +1,16 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: gogs-ingress
+spec:
+  rules:
+    - host: gogs.kushihiko.tech
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: gogs-service
+                port:
+                  number: 18080

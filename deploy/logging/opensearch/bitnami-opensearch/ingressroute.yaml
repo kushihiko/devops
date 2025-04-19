@@ -1,0 +1,30 @@
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: opensearch-ingressroute
+spec:
+  entryPoints:
+    - web
+  routes:
+    - match: Host(`opensearch.kushihiko.tech`)
+      kind: Rule
+      services:
+        - name: opensearch
+          port: 9200
+
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: opensearch-ingressroute-secure
+spec:
+  entryPoints:
+    - websecure
+  routes:
+    - match: Host(`opensearch.kushihiko.tech`)
+      kind: Rule
+      services:
+        - name: opensearch
+          port: 9200
+  tls:
+    certResolver: cloudflare

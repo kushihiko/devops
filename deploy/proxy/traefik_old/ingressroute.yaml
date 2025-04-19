@@ -1,0 +1,14 @@
+apiVersion: traefik.containo.us/v1beta1
+kind: IngressRoute
+metadata:
+  name: traefik-dashboard
+spec:
+  entryPoints:
+    - secure
+  routes:
+    - match: Host(`traefik.kushihiko.tech`) && PathPrefix(`/dashboard`)
+      kind: Rule
+      services:
+        - name: api@internal
+          kind: TraefikService
+  tls: {}

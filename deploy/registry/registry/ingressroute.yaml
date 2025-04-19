@@ -1,0 +1,30 @@
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: registry-ingressroute
+spec:
+  entryPoints:
+    - web
+  routes:
+    - match: Host(`registry.kushihiko.tech`)
+      kind: Rule
+      services:
+        - name: registry-docker-registry
+          port: 5000
+
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: registry-ingressroute-secure
+spec:
+  entryPoints:
+    - websecure
+  routes:
+    - match: Host(`registry.kushihiko.tech`)
+      kind: Rule
+      services:
+        - name: registry-docker-registry
+          port: 5000
+  tls:
+    certResolver: cloudflare

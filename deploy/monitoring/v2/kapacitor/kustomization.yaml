@@ -1,0 +1,13 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+helmCharts:
+  - name: kapacitor
+    releaseName: kapacitor
+    includeCRDs: true
+    repo: https://helm.influxdata.com/
+    valuesFile: values.yaml
+labels:
+  - includeSelectors: true
+    pairs:
+      app.kubernetes.io/created-by: kustomizer
+      app.kubernetes.io/name: kapacitor

@@ -1,0 +1,13 @@
+adminUser:
+  organization: "Kushihiko"
+  bucket: "main"
+  existingSecret: influxdb2-auth
+
+ingress:
+  enabled: false
+
+persistence:
+  enabled: true
+  useExisting: true
+  name: influxdb-pvc
+  storageClass: local-storage
