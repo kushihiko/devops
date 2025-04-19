@@ -1,0 +1,26 @@
+image:
+  registry: docker.io
+  repository: grafana/promtail
+  tag: 3.4.2
+
+resources:
+  limits:
+    cpu: 200m
+    memory: 128Mi
+  requests:
+    cpu: 100m
+    memory: 128Mi
+
+config:
+  clients:
+    - url: http://loki:3100/loki/api/v1/push
+
+extraVolumes:
+  - name: varlog
+    hostPath:
+      path: /var/log
+
+extraVolumeMounts:
+  - name: varlog
+    mountPath: /var/log
+    readOnly: true

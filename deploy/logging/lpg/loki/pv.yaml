@@ -1,17 +1,15 @@
+kind: PersistentVolume
 apiVersion: v1
-kind: Pod
 metadata:
-  name: $title$
+  name: loki-pv
   labels:
-    role: $title$
+    type: local
+    app.kubernetes.io/name: loki
 spec:
-  containers:
-    - name: $title$
-      image: $nginx$
-      imagePullPolicy: IfNotPresent
-      ports:
-        - name: $title$
-          containerPort: $80$
-          protocol: $TCP$
-  restartPolicy: Always
-  $END$
+  storageClassName: gp2
+  capacity:
+    storage: 10Gi
+  accessModes:
+    - ReadWriteOnce
+  hostPath:
+    path: "/mnt/loki-pv"

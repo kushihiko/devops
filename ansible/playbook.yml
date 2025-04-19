@@ -6,8 +6,8 @@
     - group_vars/vault.yml
   roles:
     - docker
-    - dns
-    - traefik
-    - gogs
-    - registry
-    - jenkins
+#    - dns
+#    - traefik
+#    - gogs
+#    - registry
+#    - jenkins

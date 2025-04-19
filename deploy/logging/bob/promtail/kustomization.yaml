@@ -7,7 +7,6 @@ resources:
   - cm.yaml
   - clusterrole.yaml
   - clusterrolebinding.yaml
-
 labels:
   - includeSelectors: true
     pairs:

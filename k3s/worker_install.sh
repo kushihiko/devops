@@ -20,7 +20,8 @@ if [ -z "$MASTER_IP" ]; then
 fi
 
 echo "Joining k3s worker node..."
-curl -sfL https://get.k3s.io | K3S_URL=https://$MASTER_IP:6443 K3S_TOKEN=$K3S_TOKEN sh -
+curl -sfL https://get.k3s.io -o /tmp/k3s-install.sh
+K3S_URL=https://$MASTER_IP:6443 K3S_TOKEN=$K3S_TOKEN /tmp/k3s-install.sh
 
 echo "Ensuring k3s service is running..."
 sudo systemctl enable --now k3s-agent

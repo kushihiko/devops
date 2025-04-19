@@ -1,0 +1,305 @@
+additionalArguments:
+  - --certificatesResolvers.cloudflare.acme.dnschallenge.provider=cloudflare
+  - --certificatesResolvers.cloudflare.acme.dnschallenge.resolvers=1.1.1.1
+  - --certificatesResolvers.cloudflare.acme.email=Myaso.G71@gmail.com
+  - --certificatesResolvers.cloudflare.acme.storage=/ssl-certs/acme-cloudflare.json
+
+env:
+  - name: CF_API_EMAIL
+    valueFrom:
+      secretKeyRef:
+        name: traefik-secret
+        key: email
+  - name: CF_DNS_API_TOKEN
+    valueFrom:
+      secretKeyRef:
+        name: traefik-secret
+        key: apitoken
+
+
+image:
+  repository: traefik
+  tag: v3.3.5
+  pullPolicy: IfNotPresent
+
+# --> Change redirect HTTP to HTTPs by default here...
+ports:
+  web:
+    port: 80
+    redirections:
+      entryPoint:
+        to: websecure
+        scheme: https
+        permanent: true
+  websecure:
+    port: 443
+    tls:
+      enabled: true
+      certResolver: cloudflare
+  ssh:
+    port: 22
+
+persistence:
+  enabled: true
+  name: ssl-certs
+  size: 1Gi
+  path: /ssl-certs
+
+# --> (Optional) Change log settings here...
+logs:
+  general:
+    level: ERROR
+  access:
+    enabled: false
+
+
+deployment:
+#  initContainers:
+#    - name: volume-permissions
+#      image: busybox:1.31.1
+#      command: ["sh", "-c", "chmod -Rv 600 /ssl-certs/*"]
+#      volumeMounts:
+#        - name: ssl-certs
+#          mountPath: /ssl-certs
+  # -- Enable deployment
+  enabled: true
+  # -- Deployment or DaemonSet
+  kind: Deployment
+  # -- Number of pods of the deployment (only applies when kind == Deployment)
+  replicas: 1
+  # -- Number of old history to retain to allow rollback (If not set, default Kubernetes value is set to 10)
+  revisionHistoryLimit:  # @schema type:[integer, null];minimum:0
+  # -- Amount of time (in seconds) before Kubernetes will send the SIGKILL signal if Traefik does not shut down
+  terminationGracePeriodSeconds: 60
+  # -- The minimum number of seconds Traefik needs to be up and running before the DaemonSet/Deployment controller considers it available
+  minReadySeconds: 0
+
+# -- Create a default IngressClass for Traefik
+ingressClass:  # @schema additionalProperties: false
+  enabled: true
+  isDefaultClass: true
+  name: ""
+
+core:  # @schema additionalProperties: false
+  # -- Can be used to use globally v2 router syntax
+  # See https://doc.traefik.io/traefik/v3.0/migration/v2-to-v3/#new-v3-syntax-notable-changes
+  defaultRuleSyntax: ""
+
+ingressRoute:
+  dashboard:
+    # -- Create an IngressRoute for the dashboard
+    enabled: true
+    # -- Additional ingressRoute annotations (e.g. for kubernetes.io/ingress.class)
+    annotations: {}
+    # -- Additional ingressRoute labels (e.g. for filtering IngressRoute by custom labels)
+    labels: {}
+    # -- The router match rule used for the dashboard ingressRoute
+    matchRule: (Host(`traefik.kushihiko.tech`) && PathPrefix(`/dashboard`)) || (Host(`traefik.kushihiko.tech`) && PathPrefix(`/api`)) # || (PathPrefix(`/api`))
+    # -- The internal service used for the dashboard ingressRoute
+    services:
+      - name: api@internal
+        kind: TraefikService
+    # -- Specify the allowed entrypoints to use for the dashboard ingress route, (e.g. traefik, web, websecure).
+    # By default, it's using traefik entrypoint, which is not exposed.
+    # /!\ Do not expose your dashboard without any protection over the internet /!\
+    entryPoints:
+      - websecure
+    # -- Additional ingressRoute middlewares (e.g. for authentication)
+    middlewares: []
+    # -- TLS options (e.g. secret containing certificate)
+    tls: {}
+  healthcheck:
+    # -- Create an IngressRoute for the healthcheck probe
+    enabled: false
+    # -- Additional ingressRoute annotations (e.g. for kubernetes.io/ingress.class)
+    annotations: {}
+    # -- Additional ingressRoute labels (e.g. for filtering IngressRoute by custom labels)
+    labels: {}
+    # -- The router match rule used for the healthcheck ingressRoute
+    matchRule: PathPrefix(`/ping`)
+    # -- The internal service used for the healthcheck ingressRoute
+    services:
+      - name: ping@internal
+        kind: TraefikService
+    # -- Specify the allowed entrypoints to use for the healthcheck ingress route, (e.g. traefik, web, websecure).
+    # By default, it's using traefik entrypoint, which is not exposed.
+    entryPoints: ["traefik"]
+    # -- Additional ingressRoute middlewares (e.g. for authentication)
+    middlewares: []
+    # -- TLS options (e.g. secret containing certificate)
+    tls: {}
+
+updateStrategy:  # @schema additionalProperties: false
+  # -- Customize updateStrategy of Deployment or DaemonSet
+  type: RollingUpdate
+  rollingUpdate:
+    maxUnavailable: 0  # @schema type:[integer, string, null]
+    maxSurge: 1        # @schema type:[integer, string, null]
+
+readinessProbe:  # @schema additionalProperties: false
+  # -- The number of consecutive failures allowed before considering the probe as failed.
+  failureThreshold: 1
+  # -- The number of seconds to wait before starting the first probe.
+  initialDelaySeconds: 2
+  # -- The number of seconds to wait between consecutive probes.
+  periodSeconds: 10
+  # -- The minimum consecutive successes required to consider the probe successful.
+  successThreshold: 1
+  # -- The number of seconds to wait for a probe response before considering it as failed.
+  timeoutSeconds: 2
+livenessProbe:  # @schema additionalProperties: false
+  # -- The number of consecutive failures allowed before considering the probe as failed.
+  failureThreshold: 3
+  # -- The number of seconds to wait before starting the first probe.
+  initialDelaySeconds: 2
+  # -- The number of seconds to wait between consecutive probes.
+  periodSeconds: 10
+  # -- The minimum consecutive successes required to consider the probe successful.
+  successThreshold: 1
+  # -- The number of seconds to wait for a probe response before considering it as failed.
+  timeoutSeconds: 2
+
+# -- Define [Startup Probe](https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/#define-startup-probes)
+startupProbe: {}
+
+
+# -- Add volumes to the traefik pod. The volume name will be passed to tpl.
+# This can be used to mount a cert pair or a configmap that holds a config.toml file.
+# After the volume has been mounted, add the configs into traefik by using the `additionalArguments` list below, eg:
+# `additionalArguments:
+# - "--providers.file.filename=/config/dynamic.toml"
+# - "--ping"
+# - "--ping.entrypoint=web"`
+volumes: []
+# - name: public-cert
+#   mountPath: "/certs"
+#   type: secret
+# - name: '{{ printf "%s-configs" .Release.Name }}'
+#   mountPath: "/config"
+#   type: configMap
+
+# -- Additional volumeMounts to add to the Traefik container
+additionalVolumeMounts: []
+# -- For instance when using a logshipper for access logs
+# - name: traefik-logs
+#   mountPath: /var/log/traefik
+
+metrics:
+  # -- Enable metrics for internal resources. Default: false
+  addInternals: false
+
+  ## Prometheus is enabled by default.
+  ## It can be disabled by setting "prometheus: null"
+  prometheus:
+    # -- Entry point used to expose metrics.
+    entryPoint: metrics
+    # -- Enable metrics on entry points. Default: true
+    addEntryPointsLabels:  # @schema type:[boolean, null]
+    # -- Enable metrics on routers. Default: false
+    addRoutersLabels:  # @schema type:[boolean, null]
+    # -- Enable metrics on services. Default: true
+    addServicesLabels:  # @schema type:[boolean, null]
+    # -- Buckets for latency metrics. Default="0.1,0.3,1.2,5.0"
+    buckets: ""
+    # -- When manualRouting is true, it disables the default internal router in
+    ## order to allow creating a custom router for prometheus@internal service.
+    manualRouting: false
+    # -- Add HTTP header labels to metrics. See EXAMPLES.md or upstream doc for usage.
+    headerLabels: {}  # @schema type:[object, null]
+    service:
+      # -- Create a dedicated metrics service to use with ServiceMonitor
+      enabled: false
+      labels: {}
+      annotations: {}
+    # -- When set to true, it won't check if Prometheus Operator CRDs are deployed
+    disableAPICheck:  # @schema type:[boolean, null]
+    serviceMonitor:
+      # -- Enable optional CR for Prometheus Operator. See EXAMPLES.md for more details.
+      enabled: false
+      metricRelabelings: []
+      relabelings: []
+      jobLabel: ""
+      interval: ""
+      honorLabels: false
+      scrapeTimeout: ""
+      honorTimestamps: false
+      enableHttp2: false
+      followRedirects: false
+      additionalLabels: {}
+      namespace: ""
+      namespaceSelector: {}
+    prometheusRule:
+      # -- Enable optional CR for Prometheus Operator. See EXAMPLES.md for more details.
+      enabled: false
+      additionalLabels: {}
+      namespace: ""
+
+  #  datadog:
+  #    ## Address instructs exporter to send metrics to datadog-agent at this address.
+  #    address: "127.0.0.1:8125"
+  #    ## The interval used by the exporter to push metrics to datadog-agent. Default=10s
+  #    # pushInterval: 30s
+  #    ## The prefix to use for metrics collection. Default="traefik"
+  #    # prefix: traefik
+  #    ## Enable metrics on entry points. Default=true
+  #    # addEntryPointsLabels: false
+  #    ## Enable metrics on routers. Default=false
+  #    # addRoutersLabels: true
+  #    ## Enable metrics on services. Default=true
+  #    # addServicesLabels: false
+  #  influxdb2:
+  #    ## Address instructs exporter to send metrics to influxdb v2 at this address.
+  #    address: localhost:8086
+  #    ## Token with which to connect to InfluxDB v2.
+  #    token: xxx
+  #    ## Organisation where metrics will be stored.
+  #    org: ""
+  #    ## Bucket where metrics will be stored.
+  #    bucket: ""
+  #    ## The interval used by the exporter to push metrics to influxdb. Default=10s
+  #    # pushInterval: 30s
+  #    ## Additional labels (influxdb tags) on all metrics.
+  #    # additionalLabels:
+  #    #   env: production
+  #    #   foo: bar
+  #    ## Enable metrics on entry points. Default=true
+  #    # addEntryPointsLabels: false
+  #    ## Enable metrics on routers. Default=false
+  #    # addRoutersLabels: true
+  #    ## Enable metrics on services. Default=true
+  #    # addServicesLabels: false
+  #  statsd:
+  #    ## Address instructs exporter to send metrics to statsd at this address.
+  #    address: localhost:8125
+  #    ## The interval used by the exporter to push metrics to influxdb. Default=10s
+  #    # pushInterval: 30s
+  #    ## The prefix to use for metrics collection. Default="traefik"
+  #    # prefix: traefik
+  #    ## Enable metrics on entry points. Default=true
+  #    # addEntryPointsLabels: false
+  #    ## Enable metrics on routers. Default=false
+  #    # addRoutersLabels: true
+  #    ## Enable metrics on services. Default=true
+  #    # addServicesLabels: false
+
+# -- Global command arguments to be passed to all traefik's pods
+globalArguments:
+  - "--global.checknewversion"
+  - "--global.sendanonymoususage"
+
+# -- Additional arguments to be passed at Traefik's binary
+# See [CLI Reference](https://docs.traefik.io/reference/static-configuration/cli/)
+# Use curly braces to pass values: `helm install --set="additionalArguments={--providers.kubernetesingress.ingressclass=traefik-internal,--log.level=DEBUG}"`
+
+# -- Additional Environment variables to be passed to Traefik's binary
+# @default -- See _values.yaml_
+# -- Environment variables to be passed to Traefik's binary from configMaps or secrets
+envFrom: []
+
+# -- TLS Options are created as [TLSOption CRDs](https://doc.traefik.io/traefik/https/tls/#tls-options)
+# When using `labelSelector`, you'll need to set labels on tlsOption accordingly.
+# See EXAMPLE.md for details.
+tlsOptions: {}
+
+# -- TLS Store are created as [TLSStore CRDs](https://doc.traefik.io/traefik/https/tls/#default-certificate). This is useful if you want to set a default certificate. See EXAMPLE.md for details.
+tlsStore: {}

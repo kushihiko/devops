@@ -1,26 +1,67 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: $title$
+  name: gogs-deployment
   labels:
-    app: $title$
+    app: gogs
 spec:
-  replicas: $1$
+  replicas: 1
   selector:
     matchLabels:
-      app: $title$
+      app: gogs
   template:
     metadata:
-      name: $title$
+      name: gogs
       labels:
-        app: $title$
+        app: gogs
+        version: v1
     spec:
       containers:
-        - name: $title$
-          image: $nginx$
+        - name: gogs
+          image: gogs/gogs:0.13-arm64
+          env:
+            - name: DATABASE_USER
+              valueFrom:
+                secretKeyRef:
+                  name: gogs-postgres-secret
+                  key: POSTGRES_USER
+            - name: DATABASE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: gogs-postgres-secret
+                  key: POSTGRES_PASSWORD
+            - name: DATABASE_NAME
+              valueFrom:
+                secretKeyRef:
+                  name: gogs-postgres-secret
+                  key: POSTGRES_DB
+            - name: SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: gogs-secret
+                  key: SECRET_KEY
           imagePullPolicy: IfNotPresent
           ports:
-            - containerPort: $80$
-              protocol: $TCP$
-      restartPolicy: Always
-      $END$
+            - containerPort: 22
+              name: ssh
+            - containerPort: 3000
+              name: http
+              protocol: TCP
+#          volumeMounts:
+#            - name: gogs-persistent-storage
+#              mountPath: /data
+#              readOnly: false
+#            - name: gogs-config
+#              mountPath: /data/gogs/conf/app.ini
+#              subPath: app.ini
+#              readOnly: false
+#      volumes:
+#        - name: gogs-persistent-storage
+#          persistentVolumeClaim:
+#            claimName: gogs-pvc
+#        - name: gogs-config
+#          configMap:
+#            name: gogs-configmap
+#            items:
+#              - key: app.ini
+#                path: app.ini

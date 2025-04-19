@@ -44,6 +44,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
         node.vm.network "forwarded_port", guest: 443, host: 443
         node.vm.network "forwarded_port", guest: 6443, host: 6443
         node.vm.network "forwarded_port", guest: 8443, host: 8443
+        node.vm.network "forwarded_port", guest: 31111, host: 31111
         
         node.vm.provision "ansible" do |ansible|
             ansible.compatibility_mode = "2.0"

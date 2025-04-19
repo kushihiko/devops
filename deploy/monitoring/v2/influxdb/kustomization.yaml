@@ -5,8 +5,8 @@ resources:
   - secrets.yaml
   - ingressroute.yaml
 helmCharts:
-  - name: influxdb2
-    releaseName: influxdb2
+  - name: influxdb
+    releaseName: influxdb
     includeCRDs: true
     repo: https://helm.influxdata.com/
     valuesFile: values.yaml

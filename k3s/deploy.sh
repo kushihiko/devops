@@ -70,15 +70,5 @@ sudo chown $USER $KUBE_CONFIG
 sudo chmod 600 $KUBE_CONFIG
 export KUBECONFIG=$KUBE_CONFIG
 
-# 2. Разворачиваем dashboard
-helm upgrade --install kubernetes-dashboard kubernetes-dashboard/kubernetes-dashboard --create-namespace --namespace kubernetes-dashboard
-kubectl -n kubernetes-dashboard port-forward svc/kubernetes-dashboard-kong-proxy 8443:443 > /dev/null 2>&1 &
-
-kubectl apply -f manifests/dashboard-sa.yml
-
-echo "Token for connection:"
-echo ""
-kubectl -n kubernetes-dashboard create token r-miasnikov
-
 # 3. Удаляем временные файлы
 rm -f $SSH_CONFIG

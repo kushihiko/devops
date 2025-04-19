@@ -1,90 +1,233 @@
+# Default values for docker-registry.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
 replicaCount: 1
 
-image:
-  repository: registry
-  pullPolicy: Always
-  tag: "2"
+updateStrategy: {}
+  # type: RollingUpdate
+  # rollingUpdate:
+  #   maxSurge: 1
+#   maxUnavailable: 0
 
-imagePullSecrets: []
-nameOverride: ""
-fullnameOverride: ""
+podAnnotations: {}
+podLabels: {}
 
 serviceAccount:
   create: false
-  annotations: {}
   name: ""
+  annotations: {}
 
-podAnnotations: {}
-podSecurityContext: {}
-securityContext: {}
-
-probe:
-  enabled: true
-
+image:
+  repository: registry
+  tag: 2.8.1
+  pullPolicy: IfNotPresent
+    # imagePullSecrets:
+  # - name: docker
+deployment: {}
+# annotations:
 service:
+  name: registry
   type: ClusterIP
-  port: 80
-  containerPort: 5000
-
-ingress:
-  enabled: true
-  className: ""
-#  annotations:
-#    kubernetes.io/ingress.class: public
-#    cert-manager.io/cluster-issuer: letsencrypt-issuer
-#    nginx.ingress.kubernetes.io/enable-cors: "true"
-#    nginx.ingress.kubernetes.io/configuration-snippet: |
-#      proxy_set_header Origin https://registry.example.com;
-#    nginx.ingress.kubernetes.io/proxy-body-size: "0"
-#    nginx.ingress.kubernetes.io/proxy-read-timeout: "600"
-#    nginx.ingress.kubernetes.io/proxy-send-timeout: "600"
-  hosts:
-    - host: registry.kushihiko.tech
-      paths:
-        - path: /
-          pathType: ImplementationSpecific
-#  tls:
-#    - secretName: tls-secret-registry
-#      hosts:
-#        - registry.example.com
+  # sessionAffinity: None
+  # sessionAffinityConfig: {}
+  # clusterIP:
+  port: 5000
+  # nodePort:
+  # loadBalancerIP:
+  # loadBalancerSourceRanges:
+  annotations: {}
+  # foo.io/bar: "true"
+  labels: {}
+  # foo.io/baz: "false"
 
 resources: {}
+  # We usually recommend not to specify default resources and to leave this as a conscious
+  # choice for the user. This also increases chances charts run on environments with little
+  # resources, such as Minikube. If you do want to specify resources, uncomment the following
+  # lines, adjust them as necessary, and remove the curly braces after 'resources:'.
+  # limits:
+  #  cpu: 100m
+  #  memory: 128Mi
+  # requests:
+  #  cpu: 100m
+#  memory: 128Mi
+persistence:
+  accessMode: 'ReadWriteOnce'
+  enabled: false
+  size: 10Gi
+  # storageClass: '-'
+
+# set the type of filesystem to use: filesystem, s3
+storage: filesystem
+
+# Set this to name of secret for tls certs
+# tlsSecretName: registry.docker.example.com
+secrets:
+  haSharedSecret: ""
+  htpasswd: ""
+# Secrets for Azure
+#   azure:
+#     accountName: ""
+#     accountKey: ""
+#     container: ""
+# Secrets for S3 access and secret keys
+# Use a secretRef with keys (accessKey, secretKey) for secrets stored outside the chart
+#   s3:
+#     secretRef: ""
+#     accessKey: ""
+#     secretKey: ""
+# Secrets for Swift username and password
+#   swift:
+#     username: ""
+#     password: ""
+
+# Options for s3 storage type:
+# s3:
+#  region: us-east-1
+#  regionEndpoint: https://s3.us-east-1.amazonaws.com
+#  bucket: my-bucket
+#  rootdirectory: /object/prefix
+#  encrypt: false
+#  secure: true
+
+# Options for swift storage type:
+# swift:
+#  authurl: http://swift.example.com/
+#  container: my-container
+
+# https://docs.docker.com/registry/recipes/mirror/
+proxy:
+  enabled: false
+  remoteurl: https://registry-1.docker.io
+  username: ""
+  password: ""
+  # the ref for a secret stored outside of this chart
+  # Keys: proxyUsername, proxyPassword
+  secretRef: ""
+
+metrics:
+  enabled: false
+  port: 5001
+  # Create a prometheus-operator servicemonitor
+  serviceMonitor:
+    enabled: false
+    labels: {}
+  # prometheus-operator PrometheusRule defining alerting rules for a Prometheus instance
+  prometheusRule:
+    enabled: false
+    labels: {}
+    rules: {}
+
+configData:
+  version: 0.1
+  log:
+    fields:
+      service: registry
+  storage:
+    cache:
+      blobdescriptor: inmemory
+  http:
+    addr: :5000
+    headers:
+      X-Content-Type-Options: [nosniff]
+    debug:
+      addr: :5001
+      prometheus:
+        enabled: false
+        path: /metrics
+  health:
+    storagedriver:
+      enabled: true
+      interval: 10s
+      threshold: 3
+
+containerSecurityContext:
+  enabled: true
+  seLinuxOptions: {}
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+      - ALL
+  privileged: false
+  readOnlyRootFilesystem: true
+  runAsUser: 1000
+  runAsGroup: 1000
+  runAsNonRoot: true
+  seccompProfile:
+    type: RuntimeDefault
+
+securityContext:
+  enabled: true
+  fsGroupChangePolicy: Always
+  sysctls: []
+  supplementalGroups: []
+  fsGroup: 1000
+
+priorityClassName: ""
+
+podDisruptionBudget: {}
+  # maxUnavailable: 1
+# minAvailable: 2
 
 autoscaling:
   enabled: false
+  minReplicas: 1
+  maxReplicas: 2
+  targetCPUUtilizationPercentage: 60
+  targetMemoryUtilizationPercentage: 60 # available only on Kubernetes ≥1.23 [required "autoscaling/v2"]
+  behavior: {} # available only on Kubernetes ≥1.23 [required "autoscaling/v2"]
+#   scaleDown:
+#     stabilizationWindowSeconds: 300
+#     policies:
+#     - type: Percent
+#       value: 100
+#       periodSeconds: 15
+#   scaleUp:
+#     stabilizationWindowSeconds: 0
+#     policies:
+#     - type: Percent
+#       value: 100
+#       periodSeconds: 15
+#     - type: Pods
+#       value: 4
+#       periodSeconds: 15
+#     selectPolicy: Max
 
 nodeSelector: {}
-tolerations: []
+
 affinity: {}
 
-#config:
-#  - name: registry-config
-#    data:
-#      - key: REGISTRY_AUTH
-#        value: htpasswd
-#      - key: REGISTRY_AUTH_HTPASSWD_REALM
-#        value: Registry Realm
-#      - key: REGISTRY_AUTH_HTPASSWD_PATH
-#        value: ./htpasswd
-#  - name: registry-htpasswd
-#    data:
-#      - key: passwd
-#        value: "admin:$apr1$t/jfFJ08$r6hAbIBaMJoSP/5lb4qT91"
+tolerations: []
 
-pvc:
-  enabled: true
-  config:
-    - name: registry
-      accessMode: ReadWriteMany
-      storage:
-        size: 40Gi
-      mount:
-        path: /var/lib/registry
+extraVolumeMounts: []
+## Additional volumeMounts to the registry container.
+#  - mountPath: /secret-data
+#    name: cloudfront-pem-secret
+#    readOnly: true
 
-#envconf:
-#  enabled: true
-#  config:
-#    - name: registry-htpasswd
-#      target: registry-htpasswd
-#      key: passwd
-#      subPath: htpasswd
+extraVolumes: []
+## Additional volumes to the pod.
+#  - name: cloudfront-pem-secret
+#    secret:
+#      secretName: cloudfront-credentials
+#      items:
+#        - key: cloudfront.pem
+#          path: cloudfront.pem
+#          mode: 511
+
+extraEnvVars: []
+## Additional ENV variables to set
+# - name: REGISTRY_STORAGE_FILESYSTEM_ROOTDIRECTORY
+#   value: "/var/lib/example"
+
+initContainers: []
+## Init containers to add to the Deployment
+# - name: init
+#   image: busybox
+#   command: []
+
+garbageCollect:
+  enabled: false
+  deleteUntagged: true
+  schedule: "0 1 * * *"
+  resources: {}

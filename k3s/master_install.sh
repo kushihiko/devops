@@ -8,7 +8,7 @@ chmod +x /tmp/k3s-install.sh
 
 if ! command -v k3s &> /dev/null; then
     echo "Installing k3s..."
-    /tmp/k3s-install.sh
+    /tmp/k3s-install.sh --disable traefik
 else
     echo "k3s is already installed."
 fi
